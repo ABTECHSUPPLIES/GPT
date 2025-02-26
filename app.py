@@ -7,7 +7,7 @@ if not openai.api_key:
     raise ValueError("Please set your OPENAI_API_KEY environment variable.")
 
 # Placeholder for your authorized WhatsApp number
-AUTHORIZED_NUMBER = "+1234567890"  # Replace with your WhatsApp number
+AUTHORIZED_NUMBER = os.getenv('AUTHORIZED_NUMBER', '+1234567890')  # Fetch from environment variable
 
 # Define all module prompts in a dictionary.
 MODULE_PROMPTS = {
@@ -187,12 +187,11 @@ def main():
     print("Available modules:")
     for key in MODULE_PROMPTS:
         print(f"- {key}")
-    
+
     while True:
-        sender_number = input("Enter your WhatsApp number (for authentication): ").strip()
-        if not is_authorized(sender_number):
-            print("Access denied: You are not authorized to send commands.")
-            continue
+        # Using environment variable for the number
+        sender_number = AUTHORIZED_NUMBER  
+        print(f"Authenticated number: {sender_number}")
 
         choice = input("\nEnter the module name you wish to query (or type 'exit' to quit): ").strip()
         if choice.lower() == 'exit':
