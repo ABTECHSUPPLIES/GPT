@@ -193,7 +193,9 @@ def main():
         sender_number = AUTHORIZED_NUMBER  
         print(f"Authenticated number: {sender_number}")
 
-        choice = input("\nEnter the module name you wish to query (or type 'exit' to quit): ").strip()
+        # Fetch the module choice from the environment variable
+        choice = os.getenv("MODULE_CHOICE", "Business_Manager").strip()  # Default to "Business_Manager"
+        
         if choice.lower() == 'exit':
             print("Exiting the app. Goodbye!")
             break
