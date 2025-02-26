@@ -7,17 +7,16 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 if not openai.api_key:
     raise ValueError("Please set your OPENAI_API_KEY environment variable.")
 
-# Load Twilio credentials from environment variables
-TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
-TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
-if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
-    raise ValueError("Please set your TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN environment variables.")
+# Placeholder for your authorized WhatsApp number
+AUTHORIZED_NUMBER = os.getenv('AUTHORIZED_NUMBER', '+1234567890')  # Fetch from environment variable
+
+# Twilio credentials and settings
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')  # Fetch from environment variable
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')  # Fetch from environment variable
+TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')  # Fetch from environment variable
 
 # Initialize Twilio client
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-
-# Placeholder for your authorized WhatsApp number
-AUTHORIZED_NUMBER = os.getenv('AUTHORIZED_NUMBER', '+1234567890')  # Fetch from environment variable
 
 # Define all module prompts in a dictionary.
 MODULE_PROMPTS = {
@@ -192,6 +191,20 @@ def is_authorized(sender_number: str) -> bool:
     """
     return sender_number == AUTHORIZED_NUMBER
 
+def send_whatsapp_message(to, body):
+    """
+    Sends a WhatsApp message using Twilio.
+    """
+    try:
+        message = twilio_client.messages.create(
+            body=body,
+            from_=f'whatsapp:{TWILIO_PHONE_NUMBER}',
+            to=f'whatsapp:{to}'
+        )
+        print(f"Message sent successfully to {to}")
+    except Exception as e:
+        print(f"Failed to send message: {e}")
+
 def main():
     print("Welcome to the Central AI Agent App!")
     print("Available modules:")
@@ -216,6 +229,9 @@ def main():
             print("\n--- GPT-4 Response ---")
             print(answer)
             print("----------------------")
+
+            # Send response via WhatsApp (for demonstration purposes, it sends to the AUTHORIZED_NUMBER)
+            send_whatsapp_message(sender_number, answer)
         else:
             print("Invalid module name. Please try again.")
 
