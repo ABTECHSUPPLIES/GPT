@@ -12,7 +12,7 @@ if not openai.api_key:
     raise ValueError("Please set your OPENAI_API_KEY environment variable.")
 
 # Placeholder for your authorized WhatsApp number
-AUTHORIZED_NUMBER = os.getenv('AUTHORIZED_NUMBER', '+1234567890')  # Fetch from environment variable
+AUTHORIZED_NUMBER = os.getenv('AUTHORIZED_NUMBER')  # Fetch from environment variable
 
 # Secret phrase for admin access
 SECRET_PHRASE = "admin access granted"
