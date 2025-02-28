@@ -140,6 +140,10 @@ def send_whatsapp_message(to, body):
 # Flask app to handle incoming messages
 app = Flask(__name__)
 
+@app.route("/", methods=["GET"])
+def home():
+    return "Welcome to the service! This is the home page."
+
 @app.route("/webhook", methods=["POST"])
 def webhook():
     sender_number = request.form.get("From")
