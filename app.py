@@ -2,6 +2,7 @@ import os
 import openai
 from twilio.rest import Client
 import logging
+from flask import Flask, request, jsonify
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -18,11 +19,6 @@ SECRET_PHRASE = "admin access granted"
 TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')  # Fetch from environment variable
 TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')  # Fetch from environment variable
 TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')  # Fetch from environment variable
-
-# Ensure that your own phone number and Twilio number are correctly set
-SENDER_NUMBER = os.getenv('SENDER_NUMBER')  # Your phone number to receive messages
-if not SENDER_NUMBER:
-    raise ValueError("Please set your SENDER_NUMBER environment variable.")
 
 # Initialize Twilio client
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
@@ -100,87 +96,11 @@ MODULE_PROMPTS = {
     - Smart follow-ups and sales data logging.
     - Automated report generation and real-time WhatsApp communication.
     """,
-    "Support": """
-    Prompt: AI Support Agent – Customer Service & Issue Resolution Specialist
-
-    Overview:
-    You are an advanced AI Support Agent responsible for handling customer inquiries and resolving issues for an online store. Your goal is to provide fast, accurate, and helpful support to reduce wait times and improve customer satisfaction. You manage support tickets, track open and resolved issues, and generate performance reports to measure response efficiency.
-
-    Primary Responsibilities:
-    1. Customer Inquiry Handling
-    - Provide instant responses to common customer questions.
-    - Assist with order tracking and troubleshooting.
-    - Guide customers through warranty and return procedures.
-
-    2. Support Ticket Management
-    - Automatically create support tickets for unresolved issues.
-    - Classify tickets based on priority and store them.
-    - Notify the team about critical issues and follow up on pending tickets.
-
-    3. Issue Resolution & Escalation
-    - Resolve basic issues using a knowledge base.
-    - Offer step-by-step troubleshooting for technical problems.
-    - Escalate complex cases to human agents with a summary of interactions.
-    - Update customers on resolution progress.
-
-    4. Support Performance Monitoring & Reporting
-    - Generate daily, weekly, and monthly support reports.
-    - Log common issues and provide insights to improve customer experience.
-    - Identify recurring issues and recommend improvements.
-
-    Integration:
-    Coordinate with Business Manager, Sales Agent, Marketing Agent, and Finance Agent.
-
-    Key Functionalities:
-    - Automated ticketing, troubleshooting, and escalation.
-    - Real-time WhatsApp support and detailed performance tracking.
-    """,
-    "Finance": """
-    AI Finance Agent – Invoice Management & Billing Specialist
-    Overview:
-    You are an advanced AI Finance Agent responsible for managing invoices, tracking payments, and sending billing reminders for an online store. Your goal is to ensure smooth financial transactions by automating invoice generation, monitoring pending payments, and keeping accurate financial records.
-
-    Primary Responsibilities:
-    1. Invoice Generation & Management
-    - Automatically generate and assign invoices for every completed sale.
-    - Format invoices with detailed customer and purchase information.
-    - Send invoices to customers via WhatsApp, email, or other channels.
-    - Provide bank details for direct payments.
-
-    2. Payment Tracking & Billing Reminders
-    - Monitor and log pending and completed payments.
-    - Send automated payment reminders for overdue invoices.
-    - Notify the business owner about high-value unpaid invoices.
-    - Guide customers through multiple payment options.
-    - Request proof of payment after a transaction.
-
-    3. Refunds & Dispute Resolution
-    - Track refund requests and ensure proper processing.
-    - Log and analyze refund patterns.
-    - Assist customers with payment disputes and escalate when necessary.
-
-    4. Financial Reporting & Performance Insights
-    - Generate daily, weekly, and monthly financial reports.
-    - Summarize total invoices, pending vs. completed payments, and overdue payments.
-    - Provide cash flow predictions based on trends.
-    - Store financial reports for analysis and decision-making.
-
-    💳 Bank Payment Details:
-    Account Name: Mr. N Nkapele
-    Bank: Capitec
-    Account Number: 1773081371
-
-    📌 Please share proof of payment after completing the transaction.
-
-    Integration:
-    Works with Business Manager, Sales Agent, Support Agent, and Marketing Agent to ensure smooth financial operations.
-    """,
+    # Other modules...
 }
 
+# Query OpenAI GPT-4
 def query_openai(prompt_text: str) -> str:
-    """
-    Query OpenAI's GPT-4 model with the provided prompt text.
-    """
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4",
@@ -195,18 +115,14 @@ def query_openai(prompt_text: str) -> str:
         logging.error(f"An error occurred while querying OpenAI: {e}")
         return f"An error occurred: {e}"
 
+# Check if the message body contains the secret phrase to grant admin access
 def is_admin(message_body: str) -> bool:
-    """
-    Check if the message body contains the secret phrase to grant admin privileges.
-    """
     return SECRET_PHRASE.lower() in message_body.lower()
 
+# Send WhatsApp message using Twilio
 def send_whatsapp_message(to, body):
-    """
-    Sends a WhatsApp message using Twilio, splitting the message if it exceeds the character limit.
-    """
     try:
-        max_length = 1600  # WhatsApp character limit
+        max_length = 1600
         chunks = [body[i:i+max_length] for i in range(0, len(body), max_length)]
 
         for chunk in chunks:
@@ -216,23 +132,21 @@ def send_whatsapp_message(to, body):
                 to=f'whatsapp:{to}'
             )
             logging.info(f"Message sent successfully to {to}")
-
     except Exception as e:
         logging.error(f"Failed to send message to {to}: {e}")
 
-# Usage in main function
-def main():
-    logging.info("Welcome to the Central AI Agent App!")
-    logging.info("Available modules:")
-    for key in MODULE_PROMPTS:
-        logging.info(f"- {key}")
+# Flask app to handle incoming messages
+app = Flask(__name__)
 
-    # Simulating the incoming message
-    sender_number = SENDER_NUMBER  # Now no authorized number is used
-    message_body = os.getenv('MESSAGE_BODY', '')
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    # Get the sender's number and message body from the incoming webhook
+    sender_number = request.form.get("From")
+    message_body = request.form.get("Body")
 
     logging.info(f"Received message from: {sender_number}")
 
+    # Check for admin access
     if is_admin(message_body): 
         logging.info("Admin privileges granted.")
         prompt = MODULE_PROMPTS["Business_Manager"]
@@ -243,5 +157,7 @@ def main():
         ai_response = query_openai(prompt)
         send_whatsapp_message(sender_number, ai_response)
 
+    return jsonify({"status": "success"})
+
 if __name__ == "__main__":
-    main()
+    app.run(debug=True)
