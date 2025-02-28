@@ -20,6 +20,9 @@ TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')  # Fetch from environment v
 TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')  # Fetch from environment variable
 TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')  # Fetch from environment variable
 
+if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER]):
+    raise ValueError("Please set your Twilio environment variables.")
+
 # Initialize Twilio client
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
@@ -109,8 +112,7 @@ def query_openai(prompt_text: str) -> str:
             temperature=0.7,
             max_tokens=1000,
         )
-        answer = response.choices[0].message["content"].strip()
-        return answer
+        return response["choices"][0]["message"]["content"].strip()
     except Exception as e:
         logging.error(f"An error occurred while querying OpenAI: {e}")
         return f"An error occurred: {e}"
@@ -126,12 +128,12 @@ def send_whatsapp_message(to, body):
         chunks = [body[i:i+max_length] for i in range(0, len(body), max_length)]
 
         for chunk in chunks:
-            message = twilio_client.messages.create(
+            twilio_client.messages.create(
                 body=chunk,
                 from_=f'whatsapp:{TWILIO_PHONE_NUMBER}',
                 to=f'whatsapp:{to}'
             )
-            logging.info(f"Message sent successfully to {to}")
+        logging.info(f"Message sent successfully to {to}")
     except Exception as e:
         logging.error(f"Failed to send message to {to}: {e}")
 
@@ -140,25 +142,23 @@ app = Flask(__name__)
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    # Get the sender's number and message body from the incoming webhook
     sender_number = request.form.get("From")
     message_body = request.form.get("Body")
+
+    if not sender_number or not message_body:
+        logging.error("Missing 'From' or 'Body' in the request.")
+        return jsonify({"status": "error", "message": "Invalid request"}), 400
 
     logging.info(f"Received message from: {sender_number}")
 
     # Check for admin access
-    if is_admin(message_body): 
-        logging.info("Admin privileges granted.")
-        prompt = MODULE_PROMPTS["Business_Manager"]
-        ai_response = query_openai(prompt)
-        send_whatsapp_message(sender_number, ai_response)
-    else:
-        prompt = MODULE_PROMPTS["Sales"]
-        ai_response = query_openai(prompt)
-        send_whatsapp_message(sender_number, ai_response)
+    prompt_key = "Business_Manager" if is_admin(message_body) else "Sales"
+    prompt = MODULE_PROMPTS.get(prompt_key, "Sales")
+    
+    ai_response = query_openai(prompt)
+    send_whatsapp_message(sender_number, ai_response)
 
     return jsonify({"status": "success"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
-
