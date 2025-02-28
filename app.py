@@ -19,6 +19,11 @@ TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')  # Fetch from environment v
 TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')  # Fetch from environment variable
 TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')  # Fetch from environment variable
 
+# Ensure that your own phone number and Twilio number are correctly set
+SENDER_NUMBER = os.getenv('SENDER_NUMBER')  # Your phone number to receive messages
+if not SENDER_NUMBER:
+    raise ValueError("Please set your SENDER_NUMBER environment variable.")
+
 # Initialize Twilio client
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
@@ -223,7 +228,7 @@ def main():
         logging.info(f"- {key}")
 
     # Simulating the incoming message
-    sender_number = os.getenv('SENDER_NUMBER', '')  # Now no authorized number is used
+    sender_number = SENDER_NUMBER  # Now no authorized number is used
     message_body = os.getenv('MESSAGE_BODY', '')
 
     logging.info(f"Received message from: {sender_number}")
