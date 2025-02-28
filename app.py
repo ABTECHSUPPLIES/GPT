@@ -7,9 +7,8 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 if not openai.api_key:
     raise ValueError("Please set your OPENAI_API_KEY environment variable.")
 
-# Placeholder for your authorized WhatsApp number and secret phrase
+# Placeholder for your authorized WhatsApp number
 AUTHORIZED_NUMBER = os.getenv('AUTHORIZED_NUMBER', '+1234567890')  # Fetch from environment variable
-ADMIN_PASSWORD = "MkhabeleTheMillionare31@2004"  # Secret phrase and password to activate admin privileges
 
 # Twilio credentials and settings
 TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')  # Fetch from environment variable
@@ -25,7 +24,7 @@ MODULE_PROMPTS = {
     Prompt: AI Business Manager – Your WhatsApp-Based Executive Assistant
 
     Overview:
-    You are an advanced AI Business Manager responsible for overseeing and coordinating various business operations through a WhatsApp interface. Your role is to streamline task management, generate insightful reports, and track progress across different business units. You act as the central hub for communication between AI agents handling Sales, Support, Marketing, and Finance. Your primary objective is to ensure that all business functions are running smoothly by tracking tasks, generating reports, and providing actionable insights.
+    You are an advanced AI Business Manager responsible for overseeing and coordinating various business operations through a WhatsApp interface. Your role is to streamline task management, generate insightful reports, and track progress across different business units. Your primary objective is to ensure that all business functions are running smoothly by tracking tasks, generating reports, and providing actionable insights.
 
     Primary Responsibilities:
     1. Task Management & Coordination
@@ -192,12 +191,6 @@ def is_authorized(sender_number: str) -> bool:
     """
     return sender_number == AUTHORIZED_NUMBER
 
-def is_admin_password_correct(password: str) -> bool:
-    """
-    Checks if the password entered by the user is correct for admin privileges.
-    """
-    return password == ADMIN_PASSWORD
-
 def send_whatsapp_message(to, body):
     """
     Sends a WhatsApp message using Twilio.
@@ -218,37 +211,27 @@ def main():
     for key in MODULE_PROMPTS:
         print(f"- {key}")
 
-    while True:
-        sender_number = input("Enter your WhatsApp number (to simulate incoming messages): ").strip()
-        if not sender_number:
-            continue
-        
-        # Check if the user is authorized to manage the system
-        password = input("Enter admin password (leave empty for regular user): ").strip()
-        if password and is_admin_password_correct(password):
-            print("Admin privileges activated. You can manage the system.")
-            # Admin management functions here (updating modules, etc.)
-        else:
-            print("Regular user. Limited access.")
-        
-        # Fetch the module choice from the user input
-        choice = input("Enter the module name you want to interact with (or type 'exit' to quit): ").strip()
-        
-        if choice.lower() == 'exit':
-            print("Exiting the app. Goodbye!")
-            break
-        elif choice in MODULE_PROMPTS:
-            prompt_text = MODULE_PROMPTS[choice]
-            print("\nSending your prompt to OpenAI GPT-4...")
-            answer = query_openai(prompt_text)
-            print("\n--- GPT-4 Response ---")
-            print(answer)
-            print("----------------------")
+    # Using environment variable or hardcoded number to simulate incoming message
+    sender_number = os.getenv('SENDER_NUMBER', AUTHORIZED_NUMBER)  # Use environment variable or default to authorized number
+    print(f"Authenticated number: {sender_number}")
 
-            # Send response via WhatsApp (for demonstration purposes, it sends to the AUTHORIZED_NUMBER)
-            send_whatsapp_message(sender_number, answer)
-        else:
-            print("Invalid module name. Please try again.")
+    # Fetch the module choice from the environment variable
+    choice = os.getenv("MODULE_CHOICE", "Business_Manager").strip()  # Default to "Business_Manager"
+    
+    if choice.lower() == 'exit':
+        print("Exiting the app. Goodbye!")
+    elif choice in MODULE_PROMPTS:
+        prompt_text = MODULE_PROMPTS[choice]
+        print("\nSending your prompt to OpenAI GPT-4...")
+        answer = query_openai(prompt_text)
+        print("\n--- GPT-4 Response ---")
+        print(answer)
+        print("----------------------")
+
+        # Send the response via WhatsApp
+        send_whatsapp_message(sender_number, answer)
+    else:
+        print("Invalid choice. Please select a valid module.")
 
 if __name__ == "__main__":
     main()
