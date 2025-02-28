@@ -240,7 +240,7 @@ def main():
     if is_authorized(sender_number):
         logging.info("Authorized access. Proceeding with tasks.")
         
-        if is_admin(message_body):
+        if is_admin(message_body): 
             logging.info("Admin privileges granted.")
             prompt = MODULE_PROMPTS["Business_Manager"]
             ai_response = query_openai(prompt)
