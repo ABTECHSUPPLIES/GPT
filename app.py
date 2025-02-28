@@ -193,15 +193,20 @@ def is_authorized(sender_number: str) -> bool:
 
 def send_whatsapp_message(to, body):
     """
-    Sends a WhatsApp message using Twilio.
+    Sends a WhatsApp message using Twilio, splitting the message if it exceeds the character limit.
     """
     try:
-        message = twilio_client.messages.create(
-            body=body,
-            from_=f'whatsapp:{TWILIO_PHONE_NUMBER}',
-            to=f'whatsapp:{to}'
-        )
-        print(f"Message sent successfully to {to}")
+        max_length = 1600  # WhatsApp character limit
+        chunks = [body[i:i+max_length] for i in range(0, len(body), max_length)]
+
+        for chunk in chunks:
+            message = twilio_client.messages.create(
+                body=chunk,
+                from_=f'whatsapp:{TWILIO_PHONE_NUMBER}',
+                to=f'whatsapp:{to}'
+            )
+            print(f"Message sent successfully to {to}")
+
     except Exception as e:
         print(f"Failed to send message: {e}")
 
@@ -213,25 +218,17 @@ def main():
 
     # Using environment variable or hardcoded number to simulate incoming message
     sender_number = os.getenv('SENDER_NUMBER', AUTHORIZED_NUMBER)  # Use environment variable or default to authorized number
-    print(f"Authenticated number: {sender_number}")
+    print(f"Authenticated sender: {sender_number}")
 
-    # Fetch the module choice from the environment variable
-    choice = os.getenv("MODULE_CHOICE", "Business_Manager").strip()  # Default to "Business_Manager"
-    
-    if choice.lower() == 'exit':
-        print("Exiting the app. Goodbye!")
-    elif choice in MODULE_PROMPTS:
-        prompt_text = MODULE_PROMPTS[choice]
-        print("\nSending your prompt to OpenAI GPT-4...")
-        answer = query_openai(prompt_text)
-        print("\n--- GPT-4 Response ---")
-        print(answer)
-        print("----------------------")
+    if is_authorized(sender_number):
+        print("Authorized access. Proceeding with tasks.")
 
-        # Send the response via WhatsApp
-        send_whatsapp_message(sender_number, answer)
+        # Example: Query the Sales module prompt from OpenAI and send the response
+        prompt = MODULE_PROMPTS["Sales"]
+        ai_response = query_openai(prompt)
+        send_whatsapp_message(sender_number, ai_response)
     else:
-        print("Invalid choice. Please select a valid module.")
+        print("Unauthorized access attempt!")
 
 if __name__ == "__main__":
     main()
