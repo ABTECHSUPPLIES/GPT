@@ -1,6 +1,10 @@
 import os
 import openai
 from twilio.rest import Client
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Load your OpenAI API key from an environment variable
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -186,6 +190,7 @@ def query_openai(prompt_text: str) -> str:
         answer = response.choices[0].message["content"].strip()
         return answer
     except Exception as e:
+        logging.error(f"An error occurred while querying OpenAI: {e}")
         return f"An error occurred: {e}"
 
 def is_authorized(sender_number: str) -> bool:
@@ -214,41 +219,38 @@ def send_whatsapp_message(to, body):
                 from_=f'whatsapp:{TWILIO_PHONE_NUMBER}',
                 to=f'whatsapp:{to}'
             )
-            print(f"Message sent successfully to {to}")
+            logging.info(f"Message sent successfully to {to}")
 
     except Exception as e:
-        print(f"Failed to send message: {e}")
+        logging.error(f"Failed to send message to {to}: {e}")
 
+# Usage in main function
 def main():
-    print("Welcome to the Central AI Agent App!")
-    print("Available modules:")
+    logging.info("Welcome to the Central AI Agent App!")
+    logging.info("Available modules:")
     for key in MODULE_PROMPTS:
-        print(f"- {key}")
+        logging.info(f"- {key}")
 
-    # Using environment variable or hardcoded number to simulate incoming message
-    sender_number = os.getenv('SENDER_NUMBER', AUTHORIZED_NUMBER)  # Use environment variable or default to authorized number
-    message_body = os.getenv('MESSAGE_BODY', '')  # Simulating the incoming message body (adjust as necessary)
+    # Simulating the incoming message
+    sender_number = os.getenv('SENDER_NUMBER', AUTHORIZED_NUMBER)
+    message_body = os.getenv('MESSAGE_BODY', '')
 
-    print(f"Authenticated sender: {sender_number}")
+    logging.info(f"Authenticated sender: {sender_number}")
 
-    # Check if the sender is authorized
     if is_authorized(sender_number):
-        print("Authorized access. Proceeding with tasks.")
+        logging.info("Authorized access. Proceeding with tasks.")
         
         if is_admin(message_body):
-            print("Admin privileges granted.")
-            # Execute tasks with admin privileges here
-            # For example, query the Business Manager module prompt from OpenAI
+            logging.info("Admin privileges granted.")
             prompt = MODULE_PROMPTS["Business_Manager"]
             ai_response = query_openai(prompt)
             send_whatsapp_message(sender_number, ai_response)
         else:
-            # Normal user, proceed with general tasks
             prompt = MODULE_PROMPTS["Sales"]
             ai_response = query_openai(prompt)
             send_whatsapp_message(sender_number, ai_response)
     else:
-        print("Unauthorized access attempt!")
+        logging.warning("Unauthorized access attempt!")
 
 if __name__ == "__main__":
     main()
