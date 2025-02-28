@@ -11,9 +11,6 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 if not openai.api_key:
     raise ValueError("Please set your OPENAI_API_KEY environment variable.")
 
-# Placeholder for your authorized WhatsApp number
-AUTHORIZED_NUMBER = os.getenv('AUTHORIZED_NUMBER')  # Fetch from environment variable
-
 # Secret phrase for admin access
 SECRET_PHRASE = "admin access granted"
 
@@ -193,12 +190,6 @@ def query_openai(prompt_text: str) -> str:
         logging.error(f"An error occurred while querying OpenAI: {e}")
         return f"An error occurred: {e}"
 
-def is_authorized(sender_number: str) -> bool:
-    """
-    Checks if the sender's number is the authorized number.
-    """
-    return sender_number == AUTHORIZED_NUMBER
-
 def is_admin(message_body: str) -> bool:
     """
     Check if the message body contains the secret phrase to grant admin privileges.
@@ -232,25 +223,20 @@ def main():
         logging.info(f"- {key}")
 
     # Simulating the incoming message
-    sender_number = os.getenv('SENDER_NUMBER', AUTHORIZED_NUMBER)
+    sender_number = os.getenv('SENDER_NUMBER', '')  # Now no authorized number is used
     message_body = os.getenv('MESSAGE_BODY', '')
 
-    logging.info(f"Authenticated sender: {sender_number}")
+    logging.info(f"Received message from: {sender_number}")
 
-    if is_authorized(sender_number):
-        logging.info("Authorized access. Proceeding with tasks.")
-        
-        if is_admin(message_body): 
-            logging.info("Admin privileges granted.")
-            prompt = MODULE_PROMPTS["Business_Manager"]
-            ai_response = query_openai(prompt)
-            send_whatsapp_message(sender_number, ai_response)
-        else:
-            prompt = MODULE_PROMPTS["Sales"]
-            ai_response = query_openai(prompt)
-            send_whatsapp_message(sender_number, ai_response)
+    if is_admin(message_body): 
+        logging.info("Admin privileges granted.")
+        prompt = MODULE_PROMPTS["Business_Manager"]
+        ai_response = query_openai(prompt)
+        send_whatsapp_message(sender_number, ai_response)
     else:
-        logging.warning("Unauthorized access attempt!")
+        prompt = MODULE_PROMPTS["Sales"]
+        ai_response = query_openai(prompt)
+        send_whatsapp_message(sender_number, ai_response)
 
 if __name__ == "__main__":
     main()
